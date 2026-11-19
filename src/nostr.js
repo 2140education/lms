@@ -5,7 +5,7 @@ import * as nip44 from 'nostr-tools/nip44';
 import * as nip49 from 'nostr-tools/nip49';
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46';
 import { bytesToHex, hexToBytes } from 'nostr-tools/utils';
-import { RELAYS, STAFF_NPUBS, BLOSSOM_SERVERS } from './config.js';
+import { RELAYS, STAFF_NPUBS, BLOSSOM_SERVERS, PROFILE_RELAYS } from './config.js';
 
 export const pool = new SimplePool();
 export const STAFF = STAFF_NPUBS.map((n) => nip19.decode(n).data);
@@ -33,7 +33,7 @@ export const latest = (events) => events.sort((a, b) => b.created_at - a.created
 const profileCache = new Map();
 export async function profile(pubkey) {
   if (profileCache.has(pubkey)) return profileCache.get(pubkey);
-  const p = query({ kinds: [0], authors: [pubkey], limit: 3 }, { relays: globalThis.C21_TEST_RELAYS ? RELAYS : [...RELAYS, 'wss://purplepag.es'], maxWait: 2500 })
+  const p = query({ kinds: [0], authors: [pubkey], limit: 3 }, { relays: [...RELAYS, ...PROFILE_RELAYS], maxWait: 2500 })
     .then((evs) => { try { return JSON.parse(latest(evs)?.content || '{}'); } catch { return {}; } });
   profileCache.set(pubkey, p);
   return p;
@@ -83,10 +83,13 @@ export const lockKey = (sk, password) => nip49.encrypt(sk, password, 16);
 export const unlockKey = (ncryptsec, password) => nip49.decrypt(ncryptsec, password);
 
 // ---------- writing ----------
+// Resolves as soon as one relay accepts; the rest keep going in the background.
+export async function publishAny(ev, relays = RELAYS) {
+  try { await Promise.any(pool.publish(relays, ev)); return true; } catch { return false; }
+}
 export async function publish(signer, template, relays = RELAYS) {
   const ev = await signer.sign(template);
-  const results = await Promise.allSettled(pool.publish(relays, ev));
-  if (!results.some((r) => r.status === 'fulfilled')) throw new Error('No relay accepted the event. Check your connection.');
+  if (!(await publishAny(ev, relays))) throw new Error('No relay accepted the event. Check your connection.');
   return ev;
 }
 
@@ -121,31 +124,83 @@ export async function readShare(signer, ownerPk) {
   try { return { ...JSON.parse(await signer.decrypt(ownerPk, ev.content)), _updated: ev.created_at }; } catch { return null; }
 }
 
-// ---------- NIP-17 private messages (works with any signer) ----------
+// ---------- NIP-59 gift wraps: the private channel for messages, portfolios and calendars ----------
+// A rumor (unsigned event) is sealed by the author (kind 13, signed, NIP-44 encrypted to one
+// recipient) then wrapped by a throwaway key (kind 1059). Relays see only the recipient's
+// p tag and a random timestamp: not the author, the kind, or the content.
 const randomPast = () => now() - Math.floor(Math.random() * 172800);
 
-export async function sendPrivate(signer, recipients, content, extraTags = []) {
-  const everyone = [...new Set([...recipients, signer.pubkey])];
-  const rumor = { kind: 14, pubkey: signer.pubkey, created_at: now(), content,
-    tags: [...recipients.filter((p) => p !== signer.pubkey).map((p) => ['p', p]), ...extraTags] };
+export async function wrapTo(signer, recipients, template) {
+  const rumor = { created_at: now(), tags: [], content: '', ...template, pubkey: signer.pubkey };
   rumor.id = getEventHash(rumor);
-  for (const r of everyone) {
-    const seal = await signer.sign({ kind: 13, created_at: randomPast(), tags: [], content: await signer.encrypt(r, JSON.stringify(rumor)) });
+  await sealFor(signer, rumor, [...new Set([...recipients, signer.pubkey])]);
+  inboxAdd(rumor);
+  return rumor;
+}
+
+// Seal an existing rumor (same id, same time) for more people, e.g. a co-parent added later.
+// Only the rumor's author can do this, because the seal carries the author's signature.
+export async function sealFor(signer, rumor, recipients) {
+  if (rumor.pubkey !== signer.pubkey) throw new Error('Only the author can re-seal this');
+  const json = JSON.stringify(rumor);
+  if (json.length > 60000) throw new Error('That is too big to send in one go. Try a smaller file.');
+  const sends = [];
+  for (const r of recipients) {
+    const seal = await signer.sign({ kind: 13, created_at: randomPast(), tags: [], content: await signer.encrypt(r, json) });
     const eph = generateSecretKey();
     const wrap = finalizeEvent({ kind: 1059, created_at: randomPast(), tags: [['p', r]],
       content: nip44.encrypt(JSON.stringify(seal), nip44.getConversationKey(eph, r)) }, eph);
-    await Promise.allSettled(pool.publish(RELAYS, wrap));
+    sends.push(publishAny(wrap));
   }
-  return rumor;
+  if (!(await Promise.all(sends)).some(Boolean)) throw new Error('No relay accepted the encrypted event. Check your connection.');
 }
+
+// NIP-17 chat message (kind 14) to a group.
+export const sendPrivate = (signer, recipients, content, extraTags = []) =>
+  wrapTo(signer, recipients, { kind: 14, content, tags: [...recipients.filter((p) => p !== signer.pubkey).map((p) => ['p', p]), ...extraTags] });
 
 export async function unwrap(signer, wrap) {
   const seal = JSON.parse(await signer.decrypt(wrap.pubkey, wrap.content));
   if (seal.kind !== 13 || !verifyEvent(seal)) throw new Error('bad seal');
   const rumor = JSON.parse(await signer.decrypt(seal.pubkey, seal.content));
   if (rumor.pubkey !== seal.pubkey) throw new Error('forged sender');
+  if (getEventHash(rumor) !== rumor.id) throw new Error('bad rumor id');
   return rumor;
 }
+
+// Everything addressed to me, unwrapped once and kept in memory for this tab.
+const INBOX = { rumors: new Map(), seen: new Set(), loaded: null, owner: null, listeners: new Set() };
+function inboxAdd(r) {
+  if (INBOX.rumors.has(r.id)) return;
+  INBOX.rumors.set(r.id, r);
+  INBOX.listeners.forEach((fn) => { try { fn(r); } catch {} });
+}
+export const onInbox = (fn) => { INBOX.listeners.add(fn); return () => INBOX.listeners.delete(fn); };
+export function resetInbox() { INBOX.rumors.clear(); INBOX.seen.clear(); INBOX.loaded = null; INBOX.owner = null; }
+
+// Loads my gift wraps (paging back through history), unwraps them and resolves with every rumor.
+export function loadInbox(signer, { refresh = false } = {}) {
+  if (INBOX.owner !== signer.pubkey) { resetInbox(); INBOX.owner = signer.pubkey; }
+  const current = () => [...INBOX.rumors.values()];
+  if (INBOX.loaded && !refresh) return INBOX.loaded.then(current);
+  INBOX.loaded = (async () => {
+    let until;
+    for (let page = 0; page < 8; page++) {
+      const filter = { kinds: [1059], '#p': [signer.pubkey], limit: 500 };
+      if (until) filter.until = until;
+      const evs = await query(filter, { maxWait: 4000 });
+      const fresh = evs.filter((w) => !INBOX.seen.has(w.id));
+      await Promise.all(fresh.map(async (w) => {
+        INBOX.seen.add(w.id);
+        try { inboxAdd(await unwrap(signer, w)); } catch {}
+      }));
+      if (evs.length < 400) break;
+      until = Math.min(...evs.map((e) => e.created_at)) - 1;
+    }
+  })();
+  return INBOX.loaded.then(current);
+}
+export const inboxRumors = () => [...INBOX.rumors.values()];
 
 // ---------- Blossom uploads (for weekly videos) ----------
 export async function blossomUpload(signer, file, onStatus) {
@@ -182,6 +237,46 @@ export async function blossomMirror(signer, buf, type) {
   if (!ok.length) throw new Error('No Blossom server accepted the upload');
   return { hash, servers: ok };
 }
+
+// Encrypted attachments: AES-256-GCM in the browser, ciphertext to Blossom. The key lives only
+// inside the (encrypted) portfolio commit, so Blossom servers store bytes nobody can read.
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+const unhex = (h) => new Uint8Array(h.match(/../g).map((x) => parseInt(x, 16)));
+export async function uploadEncrypted(signer, file, onStatus) {
+  onStatus?.('Encrypting…');
+  const key = crypto.getRandomValues(new Uint8Array(32)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ck = await crypto.subtle.importKey('raw', key, 'AES-GCM', false, ['encrypt']);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, ck, await file.arrayBuffer());
+  const hash = hex(await crypto.subtle.digest('SHA-256', ct));
+  const auth = await signer.sign({ kind: 24242, content: 'Upload encrypted C21 portfolio file', tags: [['t', 'upload'], ['x', hash], ['expiration', String(now() + 600)]] });
+  const header = 'Nostr ' + btoa(JSON.stringify(auth));
+  let lastErr;
+  for (const server of BLOSSOM_SERVERS) {
+    try {
+      onStatus?.(`Uploading to ${new URL(server).host}…`);
+      const res = await fetch(server.replace(/\/$/, '') + '/upload', { method: 'PUT', headers: { authorization: header, 'content-type': 'application/octet-stream' }, body: ct });
+      if (!res.ok) throw new Error(`${res.status} ${res.headers.get('x-reason') || res.statusText}`);
+      const out = await res.json();
+      return { url: out.url, sha256: hash, key: hex(key), iv: hex(iv), type: file.type || 'application/octet-stream', size: file.size, name: file.name };
+    } catch (e) { lastErr = e; }
+  }
+  throw new Error('Upload failed on every Blossom server: ' + lastErr?.message);
+}
+const blobCache = new Map();
+export function fetchEncrypted(blob) {
+  if (blobCache.has(blob.sha256)) return blobCache.get(blob.sha256);
+  const p = (async () => {
+    const ct = await fetch(blob.url).then((r) => { if (!r.ok) throw new Error('File not found on Blossom'); return r.arrayBuffer(); });
+    if (hex(await crypto.subtle.digest('SHA-256', ct)) !== blob.sha256) throw new Error('File was changed on the server');
+    const ck = await crypto.subtle.importKey('raw', unhex(blob.key), 'AES-GCM', false, ['decrypt']);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unhex(blob.iv) }, ck, ct);
+    return URL.createObjectURL(new Blob([pt], { type: blob.type }));
+  })();
+  blobCache.set(blob.sha256, p);
+  return p;
+}
+
+export async function sha256hex(text) { return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))); }
 
 // nsite (NIP-5A) address for a named site: base36 pubkey + identifier.
 export const nsiteUrl = (pubkey, d, gateway = 'nsite.lol') => `https://${BigInt('0x' + pubkey).toString(36).padStart(50, '0')}${d}.${gateway}`;
