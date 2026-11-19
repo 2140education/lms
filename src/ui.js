@@ -17,13 +17,57 @@ export function toast(msg, bad = false) {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 4200);
 }
 
-// Generated avatar (a 3x3 cube face from the key). Learners never upload photos.
-const PALETTE = ['#f7931a', '#1fa6a0', '#2f6fde', '#3aa65a', '#f2c230', '#e0533d', '#7a5cd6'];
+// Generated avatar: a blocky 8x8 pixel-art head, built from the key, so the same key always
+// gets the same character. Learners never upload photos.
+const SKIN = ['#f6d7bc', '#efc39f', '#e0a97f', '#c98e62', '#a8704a', '#8a5636', '#6a3f26'];
+const HAIR = ['#2a1b12', '#4b2e1b', '#6e4223', '#a0672f', '#d6a752', '#ecd58f', '#1e2233', '#8b2f1f', '#c4562a', '#3b6fd8', '#7a5cd6', '#e0533d'];
+const EYES = ['#3b6fd8', '#2e8b57', '#6b4226', '#2aa7c4', '#7a5cd6', '#2b2b2b', '#a8702a'];
+const HATS = ['#e0533d', '#2f6fde', '#3aa65a', '#f2c230', '#7a5cd6', '#1fa6a0', '#f7931a', '#e8e4dc'];
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v) => Math.max(0, Math.min(255, Math.round(v * (1 + f))));
+  return '#' + [c(n >> 16), c((n >> 8) & 255), c(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+function mix(a, b, t) {
+  const p = (h) => [0, 2, 4].map((i) => parseInt(h.slice(1 + i, 3 + i), 16));
+  const [x, y] = [p(a), p(b)];
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const avatarCache = new Map();
 export function avatar(pubkey, size = 48) {
-  const cells = [...Array(9)].map((_, i) => PALETTE[parseInt(pubkey.slice(i * 2, i * 2 + 2), 16) % PALETTE.length]);
-  const s = 30;
-  const rects = cells.map((c, i) => `<rect x="${(i % 3) * 32 + 3}" y="${Math.floor(i / 3) * 32 + 3}" width="${s}" height="${s}" rx="6" fill="${c}"/>`).join('');
-  return `<svg class="avatar" width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="18" fill="#081b2a"/>${rects}</svg>`;
+  const key = String(pubkey || '0');
+  if (!avatarCache.has(key)) avatarCache.set(key, blockHead(key));
+  return `<svg class="avatar" width="${size}" height="${size}" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${avatarCache.get(key)}</svg>`;
+}
+function blockHead(key) {
+  // Small deterministic random generator seeded from the key.
+  let s = 2166136261;
+  for (const ch of key) s = Math.imul(s ^ ch.charCodeAt(0), 16777619);
+  const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 10000) / 10000; };
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const skin = pick(SKIN), hair = pick(HAIR), eye = pick(EYES), hat = pick(HATS);
+  const style = Math.floor(rnd() * 7), mouth = Math.floor(rnd() * 3), blush = rnd() < 0.3, brows = rnd() < 0.5;
+  const g = [...Array(8)].map(() => Array(8).fill(skin));
+  const set = (x, y, c) => { if (x >= 0 && x < 8 && y >= 0 && y < 8) g[y][x] = c; };
+  const row = (y, x0, x1, c) => { for (let x = x0; x <= x1; x++) set(x, y, c); };
+  const sides = (y0, y1, c) => { for (let y = y0; y <= y1; y++) { set(0, y, c); set(7, y, c); } };
+  if (style === 0) { row(0, 0, 7, hair); row(1, 0, 7, hair); set(3, 1, skin); set(4, 1, skin); sides(2, 3, hair); }      // short
+  else if (style === 1) { row(0, 0, 7, hair); row(1, 0, 7, hair); row(2, 0, 2, hair); sides(2, 3, hair); }               // side fringe
+  else if (style === 2) { row(0, 0, 7, hair); row(1, 0, 7, hair); sides(2, 7, hair); set(1, 2, hair); set(6, 2, hair); }  // long
+  else if (style === 3) { row(0, 2, 5, hair); for (let x = 0; x < 8; x += 2) set(x + (rnd() < 0.5 ? 0 : 1), 0, hair); row(1, 1, 6, hair); } // spiky
+  else if (style === 4) { row(0, 0, 7, hat); row(1, 0, 7, hat); row(2, 0, 7, shade(hat, -0.25)); sides(3, 3, hair); }   // cap
+  else if (style === 5) { row(0, 0, 7, hat); row(1, 0, 7, shade(hat, 0.25)); row(2, 0, 7, hat); sides(3, 4, hair); }    // striped beanie
+  else { row(0, 0, 7, hair); sides(1, 2, hair); set(1, 1, hair); set(6, 1, hair); }                                       // buzz cut
+  if (brows && style !== 4 && style !== 5) { set(1, 3, shade(hair, -0.1)); set(2, 3, shade(hair, -0.1)); set(5, 3, shade(hair, -0.1)); set(6, 3, shade(hair, -0.1)); }
+  set(1, 4, '#ffffff'); set(2, 4, eye); set(5, 4, eye); set(6, 4, '#ffffff');                                             // eyes
+  set(3, 5, shade(skin, -0.14)); set(4, 5, shade(skin, -0.14));                                                           // nose
+  if (blush) { const b = mix(skin, '#ff6f7a', 0.3); set(1, 5, b); set(6, 5, b); }
+  const lip = shade(skin, -0.42);
+  if (mouth === 0) { set(3, 6, lip); set(4, 6, lip); }
+  else if (mouth === 1) { row(6, 2, 5, lip); }
+  else { set(2, 6, lip); set(5, 6, lip); row(7, 3, 4, lip); }                                                             // grin
+  // A little per-pixel texture, like a hand-painted skin.
+  return g.flatMap((r, y) => r.map((c, x) => `<rect x="${x}" y="${y}" width="1" height="1" fill="${shade(c, (rnd() - 0.5) * 0.12)}"/>`)).join('');
 }
 
 export function qr(text, cell = 4) {

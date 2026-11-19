@@ -162,7 +162,7 @@ async function landing() {
       ['Parents create every learner key', 'Learner keys are made in a parent\'s browser (or linked from a key they already have) and locked with a password the parent sets. Parents keep a backup.'],
       ['Everything personal is encrypted', 'Progress, notes, calendars and portfolios are encrypted before they leave the device. Relays only store ciphertext.'],
       ['A circle of three', 'Each learner\'s circle is the learner, their parents and their guide. Nobody else can read their work or message them.'],
-      ['Nothing public about a child', 'Learners have no public profile at all. No names, no photos, no follower counts. Just a generated cube avatar.'],
+      ['Nothing public about a child', 'Learners have no public profile at all. No names, no photos, no follower counts. Just a generated blocky character.'],
       ['Metadata stays private too', 'Gift wraps hide who wrote what and when. A relay can\'t even tell a portfolio commit from a chat message.'],
       ['Open and auditable', 'Every line of this site is open source. Anyone can check what it does.']]
       .map(([t, d], i) => `<div class="card reveal" style="--delay:${i * 0.05}s"><h3>✓ ${t}</h3><p class="muted">${d}</p></div>`).join('')}</div>
