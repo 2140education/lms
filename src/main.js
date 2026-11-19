@@ -9,6 +9,7 @@ import { $, $$, esc, linkify, fmtDate, fmtWhen, toast, avatar, qr, safetyCheck, 
   timetable, wireTimetable, TT_COLOURS, TT_LABELS } from './ui.js';
 import { view, loading, modal, askPassword, formModal } from './shell.js';
 import { profileView, portfoliosView, demoView, DEMOS, demoModel, learnerRow } from './portfolio.js';
+import { formsView, interestForm, renderForm, formsToDo } from './forms.js';
 import { audToSats, requestInvoice } from './pay.js';
 
 const STAGES = [['discover', 'Discover'], ['design', 'Design'], ['build', 'Build'], ['launch', 'Launch']];
@@ -27,7 +28,7 @@ function videoHtml(info) {
 function renderNav() {
   const r = S.role;
   const links = !S.signer ? [['#/lessons', 'Lessons'], ['#/#week', 'The week'], ['#/#portfolio', 'Portfolios'], ['#/pay', 'Plans'], ['#/#safety', 'Safety']]
-    : [['#/home', 'Home'], ['#/lessons', 'Lessons'], ['#/calendar', 'Calendar'], [r === 'learner' ? '#/me' : '#/portfolios', r === 'learner' ? 'Portfolio' : 'Portfolios'], ['#/messages', 'Messages'],
+    : [['#/home', 'Home'], ['#/lessons', 'Lessons'], ['#/calendar', 'Calendar'], [r === 'learner' ? '#/me' : '#/portfolios', r === 'learner' ? 'Portfolio' : 'Portfolios'], ['#/forms', 'Forms'], ['#/messages', 'Messages'],
       ...(r === 'parent' ? [['#/family', 'Family']] : []), ...(isGuide() ? [['#/learners', 'Learners']] : []), ...(r === 'staff' ? [['#/studio', 'Studio']] : []), ['#/pay', 'Plans']];
   $('#nav').innerHTML = links.map(([h, l]) => `<a href="${h}" class="${location.hash.startsWith(h) && h !== '#/' ? 'on' : ''}">${l}</a>`).join('');
   $('#navcta').innerHTML = S.signer ? `<a href="#/account" class="me">${avatar(S.signer.pubkey, 30)}<span>${esc(S.settings?.name || (r === 'staff' ? 'Kieran' : 'Account'))}</span></a>`
@@ -39,6 +40,7 @@ $('#burger').onclick = () => document.body.classList.toggle('navopen');
 const routes = {
   '': landing, lessons: lessonsView, lesson: lessonView, u: profileView, demo: demoView, pay: payView, login: loginView,
   home: needLogin(homeView), calendar: needLogin(calendarView), me: needLogin(() => profileView(N.npub(S.signer.pubkey))), portfolios: needLogin(portfoliosView),
+  forms: (sub, ...a) => (sub === 'fill' ? formsView(sub, ...a) : needLogin(formsView)(sub, ...a)), // public forms can be filled without logging in
   messages: needLogin(messagesView), family: needLogin(familyView), learners: needLogin(learnersView), studio: needLogin(studioView), account: needLogin(accountView), welcome: needLogin(onboardView),
 };
 function needLogin(fn) { return (...a) => (S.signer ? (S.role ? fn(...a) : onboardView()) : (location.hash = '#/login')); }
@@ -170,8 +172,15 @@ async function landing() {
     <div class="eyebrow reveal">Plans</div><h2 class="reveal">Lessons are free. Guiding is paid.</h2>
     <p class="lead reveal">Every lesson is open to everyone. Plans add a guide, live sessions and the in-person Holiday Studio. Pay in sats over Nostr. 10% of every fee is set aside for the learner's 18th birthday, as the white paper describes.</p>
     <div class="grid g4 mt">${PLANS.map((p, i) => planCard(p, i)).join('')}</div>
-  </div></section>`);
+  </div></section>
 
+  <section class="wrap pad narrow" id="register" hidden>
+    <div class="eyebrow">Register interest</div><h2>Want in?</h2>
+    <p class="lead">Built with Formstr. Your answers are encrypted in your browser to Kieran's form key before they're sent. Nobody else can read them.</p>
+    <div class="card mt" id="interest"></div>
+  </section>`);
+
+  interestForm().then((f) => { const box = $('#interest'); if (!f || !box) return; $('#register').hidden = false; renderForm(box, f, { compact: true }); }).catch(() => {});
   typeLines($('#term'), ['$ c21 login', '✓ key unlocked (NIP-49)', '$ c21 calendar import --week', '✓ 9 sessions added, shown in your time zone', '$ git init my-c21', '✓ repo sealed for you, 2 parents and your guide (NIP-59)', '$ c21 reflect --friday', '✓ commit 3f9a1c2 encrypted, relays see only ciphertext', '$ c21 sip new "Minecraft build night"', '✓ see you Thursday']);
   $('#lookup').onsubmit = (e) => { e.preventDefault(); const v = $('#lookupU').value.trim(); if (!v.startsWith('npub1')) return toast('Paste a learner npub (starts with npub1)', true); location.hash = '#/u/' + v; };
 
@@ -384,7 +393,9 @@ async function homeView() {
       ${nextL ? `<p>Up next: <a href="#/lesson/${nextL.id}">${esc(nextL.title)}</a></p>` : '<p>You finished every lesson! 🎉</p>'}
       <h3 class="mt">My project</h3><input id="pt" value="${esc(S.learner.project.title)}" placeholder="Project name">
       <div class="stages mt">${STAGES.map(([id, l]) => `<button class="stage ${S.learner.project.stage === id ? 'on' : ''}" data-s="${id}">${l}</button>`).join('')}</div>
-      <input id="pn" class="mt" value="${esc(S.learner.project.next)}" placeholder="Next milestone"><div class="row mt"><button class="btn" id="psave">Save project</button><a class="btn ghost" href="#/me">My portfolio</a></div>`;
+      <input id="pn" class="mt" value="${esc(S.learner.project.next)}" placeholder="Next milestone"><div class="row mt"><button class="btn" id="psave">Save project</button><a class="btn ghost" href="#/me">My portfolio</a></div>
+      <div id="formsdue"></div>`;
+    formsToDo().then((n) => { const el = $('#formsdue'); if (el && n) el.innerHTML = `<a class="safe" style="display:block;text-decoration:none" href="#/forms">📝 You have <b>${n}</b> form${n > 1 ? 's' : ''} to fill in →</a>`; }).catch(() => {});
     $$('.stage', side).forEach((b) => b.onclick = () => { $$('.stage', side).forEach((x) => x.classList.remove('on')); b.classList.add('on'); S.learner.project.stage = b.dataset.s; });
     $('#psave').onclick = () => { S.learner.project = { ...S.learner.project, title: $('#pt').value, next: $('#pn').value }; saveLearner(); toast('Project saved and encrypted for your circle ✓'); };
     mine = weeklyBlocks(S.learner);

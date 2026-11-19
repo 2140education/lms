@@ -14,6 +14,7 @@ Consensus21, online, following the [Consensus21 white paper](https://consensus21
 | **Lessons** | 37 lessons across 10 programs Kieran runs in person. Marking a lesson done can commit your notes to your portfolio. |
 | **Calendar** | Week and month views. The public C21 week (NIP-52, from Kieran) plus the learner's own weekly blocks and private events. Anyone in the circle can add an event. Exports to .ics. |
 | **Portfolio** | Laid out like a consensus21.school profile (Overview, Projects, My week, Journal, SIPs) at `#/u/<npub>`. Backed by private git on Nostr: repositories, commits, files, a contribution graph, Explorers Days, Friday reflections and SIPs, plus feedback from parents and guide. |
+| **Forms** | Built on [Formstr](https://about.formstr.app/) (NIP-101). Parents, guides and Kieran build forms from C21 templates (Friday check-in, Explorers Day debrief, SIP feedback, lesson check, parent survey), send them to learners' circles and read the answers, which are encrypted to the form's key. Learners can save a copy of their answers to their portfolio. Every form also opens in formstr.app, and Formstr forms can be imported. Kieran can put a public "Register interest" form on the home page. |
 | **Weekly video** | Kieran uploads to a Blossom server, or pastes a link, and publishes a NIP-71 video event. |
 | **Messages** | Encrypted circle rooms (NIP-17). Learners can only message their own circle. |
 | **Payments** | Plans are paid in sats through Kieran's CLINK offer (`noffer1…`). |
@@ -27,6 +28,8 @@ Consensus21, online, following the [Consensus21 white paper](https://consensus21
 - **Private calendar.** Events are NIP-52 kind 31923 inside gift wraps. Removing an event publishes a cancelled version.
 - **Progress and settings.** NIP-44 encrypted kind 30078, with a separate copy for each circle member. The tag that names a copy is a hash, so relays can't see family links.
 - **Changing the circle.** When a parent adds a co-parent or a new guide, the app re-seals the learner's history (and the parent's own events) for the new person, so they see everything from the start. Removing someone stops future sharing, but can't take back what they already read.
+
+- **Forms.** Each Formstr form has its own key. Learner forms are private: the questions are encrypted to a view key that only travels inside encrypted messages to the circle, and the name tag is left blank. Answers are encrypted to the form's key, so only its owner can read them. A response does show publicly that a given pubkey answered a given form address; learners have no public profile, so that pubkey isn't linked to a name.
 
 The public C21 week and the weekly videos are deliberately public: they're the school timetable and announcements, not anyone's personal data.
 
@@ -88,7 +91,9 @@ For local development, `npm run watch` serves the site at http://localhost:8000.
 | Portfolio repos, commits, feedback | NIP-34 kinds 30617, 1617, 1111, inside NIP-59 gift wraps |
 | Private calendar events | NIP-52 kind 31923, inside NIP-59 gift wraps |
 | Portfolio attachments | AES-GCM encrypted blobs on Blossom |
-| Circle messages, enrolment, co-parent links | NIP-17 (kinds 14, 13, 1059) |
+| Circle messages, enrolment, co-parent links, form assignments | NIP-17 (kinds 14, 13, 1059) |
+| Forms | Formstr / NIP-101: template kind 30168 (signed by a per-form key, spec NIP-44 encrypted to a view key), responses kind 1069 (NIP-44 encrypted to the form key), the owner's form list kind 14083, access grants kind 18 in gift wraps to alias keys |
+| Home page interest form pointer | kind 30078 `c21/interest-form`, public |
 | C21 school week | NIP-52 (kinds 31923 and 31924), public |
 | Weekly videos | NIP-71 (kind 21) with Blossom uploads, public |
 | Payments | CLINK offers (kind 21001) over Nostr |
