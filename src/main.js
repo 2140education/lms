@@ -169,10 +169,15 @@ async function landing() {
       .map(([t, d], i) => `<div class="card reveal" style="--delay:${i * 0.05}s"><h3>✓ ${t}</h3><p class="muted">${d}</p></div>`).join('')}</div>
   </section>
 
-  <section class="band" id="pricing"><div class="wrap pad narrow center">
-    <div class="eyebrow reveal">Pricing</div><h2 class="reveal">One subscription. The same for everyone.</h2>
-    <p class="lead reveal">No tiers and no upsells. One price covers every program, your calendar, your encrypted portfolio and your guide.</p>
-    <div class="card price-tba mt reveal"><small>Subscription</small><b>Price TBA</b><p class="muted">We're still working out the price. Every lesson stays free to read in the meantime.</p></div>
+  <section class="band" id="pricing"><div class="wrap pad">
+    <div class="center"><div class="eyebrow reveal">Pricing</div><h2 class="reveal">One subscription, paid in sats</h2>
+    <p class="lead reveal">No tiers and no upsells. Every family pays the same subscription, in bitcoin over Lightning, straight from your wallet. No debt, no middlemen. It covers every program, your calendar, your encrypted portfolio and your guide. We'll announce the exact amount soon, and every lesson stays free to read until then.</p></div>
+    <div class="grid g3 mt">
+      ${[['⚡', 'Paid in sats', 'Subscriptions are priced and paid in bitcoin, over Lightning, through Nostr. Pay from any Lightning wallet in seconds, with tiny fees.'],
+         ['⏳', '10% timelocked for your learner', 'One tenth of every payment goes into a bitcoin timelock that only opens when the learner turns 18. It\'s seed money for a business built on what they learned.'],
+         ['🔍', 'Open and verifiable', 'Timelocks are enforced by the bitcoin network, not by a promise. Anyone can check on-chain that the sats are there and still locked.']]
+        .map(([i, t, d], k) => `<div class="card price-pt reveal" style="--delay:${k * 0.08}s"><div class="icon">${i}</div><h3>${t}</h3><p>${d}</p></div>`).join('')}
+    </div>
   </div></section>
 
   <section class="wrap pad narrow" id="register" hidden>
