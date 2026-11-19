@@ -285,10 +285,12 @@ ${Lo(b,u[b.id])||"_No answer_"}`).join(`
     <div class="grid g3 mt">${[["Parents create every learner key","Learner keys are made in a parent's browser (or linked from a key they already have) and locked with a password the parent sets. Parents keep a backup."],["Everything personal is encrypted","Progress, notes, calendars and portfolios are encrypted before they leave the device. Relays only store ciphertext."],["A circle of three","Each learner's circle is the learner, their parents and their guide. Nobody else can read their work or message them."],["Nothing public about a child","Learners have no public profile at all. No names, no photos, no follower counts. Just a generated blocky character."],["Metadata stays private too","Gift wraps hide who wrote what and when. A relay can't even tell a portfolio commit from a chat message."],["Open and auditable","Every line of this site is open source. Anyone can check what it does."]].map(([o,s],i)=>`<div class="card reveal" style="--delay:${i*.05}s"><h3>\u2713 ${o}</h3><p class="muted">${s}</p></div>`).join("")}</div>
   </section>
 
-  <section class="band" id="pricing"><div class="wrap pad narrow center">
-    <div class="eyebrow reveal">Pricing</div><h2 class="reveal">One subscription. The same for everyone.</h2>
-    <p class="lead reveal">No tiers and no upsells. One price covers every program, your calendar, your encrypted portfolio and your guide.</p>
-    <div class="card price-tba mt reveal"><small>Subscription</small><b>Price TBA</b><p class="muted">We're still working out the price. Every lesson stays free to read in the meantime.</p></div>
+  <section class="band" id="pricing"><div class="wrap pad">
+    <div class="center"><div class="eyebrow reveal">Pricing</div><h2 class="reveal">One subscription, paid in sats</h2>
+    <p class="lead reveal">No tiers and no upsells. Every family pays the same subscription, in bitcoin over Lightning, straight from your wallet. No debt, no middlemen. It covers every program, your calendar, your encrypted portfolio and your guide. We'll announce the exact amount soon, and every lesson stays free to read until then.</p></div>
+    <div class="grid g3 mt">
+      ${[["\u26A1","Paid in sats","Subscriptions are priced and paid in bitcoin, over Lightning, through Nostr. Pay from any Lightning wallet in seconds, with tiny fees."],["\u23F3","10% timelocked for your learner","One tenth of every payment goes into a bitcoin timelock that only opens when the learner turns 18. It's seed money for a business built on what they learned."],["\u{1F50D}","Open and verifiable","Timelocks are enforced by the bitcoin network, not by a promise. Anyone can check on-chain that the sats are there and still locked."]].map(([o,s,i],a)=>`<div class="card price-pt reveal" style="--delay:${a*.08}s"><div class="icon">${o}</div><h3>${s}</h3><p>${i}</p></div>`).join("")}
+    </div>
   </div></section>
 
   <section class="wrap pad narrow" id="register" hidden>

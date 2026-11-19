@@ -17,7 +17,7 @@ Consensus21, online, following the [Consensus21 white paper](https://consensus21
 | **Forms** | Built on [Formstr](https://about.formstr.app/) (NIP-101). Parents, guides and Kieran build forms from C21 templates (Friday check-in, Explorers Day debrief, SIP feedback, lesson check, parent survey), send them to learners' circles and read the answers, which are encrypted to the form's key. Learners can save a copy of their answers to their portfolio. Every form also opens in formstr.app, and Formstr forms can be imported. Kieran can put a public "Register interest" form on the home page. |
 | **Weekly video** | Kieran uploads to a Blossom server, or pastes a link, and publishes a NIP-71 video event. |
 | **Messages** | Encrypted circle rooms (NIP-17). Learners can only message their own circle. |
-| **Pricing** | One subscription, the same for everyone. The price is TBA, so there's no checkout yet. |
+| **Pricing** | One subscription, the same for everyone, paid in sats over Lightning. 10% of every payment goes into a bitcoin timelock that opens when the learner turns 18, as the white paper describes. The amount isn't announced yet, so there's no checkout. |
 | **Studio** (Kieran) | Post the weekly video, publish the C21 week and mirror the site to Nostr (nsite). |
 
 ## How encryption works
@@ -97,6 +97,6 @@ For local development, `npm run watch` serves the site at http://localhost:8000.
 ## Not in this version
 
 - **AI Kieran.** Planned for version 2.
-- **Payments.** There's one subscription for everyone, but the price is TBA, so there's no checkout. Nothing is locked behind a payment.
+- **Payments.** There's one subscription for everyone, but the amount isn't announced yet, so there's no checkout. Nothing is locked behind a payment.
 - **Pushing with git or ngit.** Portfolios are edited in the browser. Standard git tools can't read gift-wrapped repositories yet, so there's no `git push` to a private portfolio.
 - **Multisig council, SIP voting and the 18th-birthday timelock** from the white paper. The 3-of-6 council wallet and timelock aren't automated.

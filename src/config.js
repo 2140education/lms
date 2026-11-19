@@ -32,7 +32,7 @@ export const MAX_TEXT_COMMIT = 36_000;
 // Blossom servers for weekly video uploads and encrypted portfolio attachments (tried in order).
 export const BLOSSOM_SERVERS = ['https://blossom.primal.net', 'https://blossom.band'];
 
-// CLINK offer (Lightning over Nostr) for when subscriptions open. Not used yet: the price is TBA.
+// CLINK offer (Lightning over Nostr) for when subscriptions open. Not used yet: the amount is still to be announced.
 // src/pay.js still has the invoice helpers for that.
 export const NOFFER = 'noffer1qqsyu3ru4svu7na6q79dmxcyyk2u4ya6mrg9th3e2tv6nw96xhve74spz4mhxue69uhhyetvv9ujucm0d9hx7uewd9hsyzm6v9c97er9vesh2mr5qvqsyv9gdue';
 
