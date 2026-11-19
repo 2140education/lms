@@ -32,20 +32,13 @@ export const MAX_TEXT_COMMIT = 36_000;
 // Blossom servers for weekly video uploads and encrypted portfolio attachments (tried in order).
 export const BLOSSOM_SERVERS = ['https://blossom.primal.net', 'https://blossom.band'];
 
-// All payments go to this CLINK offer (Lightning over Nostr).
+// CLINK offer (Lightning over Nostr) for when subscriptions open. Not used yet: the price is TBA.
+// src/pay.js still has the invoice helpers for that.
 export const NOFFER = 'noffer1qqsyu3ru4svu7na6q79dmxcyyk2u4ya6mrg9th3e2tv6nw96xhve74spz4mhxue69uhhyetvv9ujucm0d9hx7uewd9hsyzm6v9c97er9vesh2mr5qvqsyv9gdue';
-
-// Prices in Australian dollars. Converted to sats at today's rate when paying.
-export const PLANS = [
-  { id: 'explorer', name: 'Explorer', aud: 29, per: 'month', blurb: 'Every lesson, your calendar, your portfolio, weekly videos from Kieran.', features: ['All lessons and projects', 'Personal C21 calendar', 'Encrypted git portfolio', 'Parent dashboard'] },
-  { id: 'studio', name: 'Studio', aud: 149, per: 'month', blurb: 'Explorer plus live cohort sessions and mentor feedback on your projects.', features: ['Everything in Explorer', 'Two live sessions a week', 'Mentor feedback on your repo', 'Kieran as your guide'], featured: true },
-  { id: 'founder', name: 'Founder', aud: 399, per: 'month', blurb: 'Studio plus a weekly 1:1 with a mentor to take your project to launch.', features: ['Everything in Studio', 'Weekly 1:1 mentoring', 'Launch and pitch support'] },
-  { id: 'holiday', name: 'Holiday Studio day', aud: 1000, per: 'day', blurb: 'In person at Campus 01, Mount Martha, in the school holidays.', features: ['9:00am to 3:00pm', 'Explorers Day Out', 'Max 21 learners'] },
-];
 
 export const SITE = {
   name: 'C21 Online',
-  tagline: 'School, rewritten as open source. Now online.',
+  tagline: 'Education, rewritten as open source. Now online.',
   campus: 'Campus 01, Mount Martha VIC',
   timezone: 'Australia/Melbourne',
 };

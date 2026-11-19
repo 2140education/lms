@@ -3,14 +3,13 @@ import * as N from './nostr.js';
 import { S, restoreSession, loginLocal, loginExtension, loginBunker, createLocalAccount, logout, savedNcryptsec, loadAccount, saveSettings, saveLearner,
   createLearner, updateLearnerSettings, acceptFamilyLinks, myLearners, learnerAccess, circleRumors, portfolioFrom, commit, makeDoc, MAIN_REPO, myCircle,
   weeklyVideos, videoInfo, c21Calendar, defaultWeekEvents, schoolWeek, weeklyBlocks, privateEvents, savePrivateEvent, cancelPrivateEvent, publishWeek } from './store.js';
-import { PROGRAMS, ALL_LESSONS, lessonById, programById, DEFAULT_WEEK } from './lessons.js';
-import { PLANS, SITE, RELAYS } from './config.js';
+import { PROGRAMS, ALL_LESSONS, lessonById, programById, DEFAULT_WEEK, PBL_CYCLE, phaseById } from './lessons.js';
+import { SITE, RELAYS } from './config.js';
 import { $, $$, esc, linkify, fmtDate, fmtWhen, toast, avatar, qr, safetyCheck, nickname, icsFile, download, animateIn, typeLines, mondayOf, ymd,
   timetable, wireTimetable, TT_COLOURS, TT_LABELS } from './ui.js';
 import { view, loading, modal, askPassword, formModal } from './shell.js';
 import { profileView, portfoliosView, demoView, DEMOS, demoModel, learnerRow } from './portfolio.js';
 import { formsView, interestForm, renderForm, formsToDo } from './forms.js';
-import { audToSats, requestInvoice } from './pay.js';
 
 const STAGES = [['discover', 'Discover'], ['design', 'Design'], ['build', 'Build'], ['launch', 'Launch']];
 const TYPE_COLOUR = { explore: '#3aa65a', core: '#2f6fde', pbl: '#1fa6a0', sip: '#f2c230', community: '#e0533d', fit: '#7a5cd6', live: '#f7931a', mine: '#9fb6c8' };
@@ -27,9 +26,9 @@ function videoHtml(info) {
 // ---------- nav ----------
 function renderNav() {
   const r = S.role;
-  const links = !S.signer ? [['#/lessons', 'Lessons'], ['#/#week', 'The week'], ['#/#portfolio', 'Portfolios'], ['#/pay', 'Plans'], ['#/#safety', 'Safety']]
+  const links = !S.signer ? [['#/lessons', 'Lessons'], ['#/#week', 'The week'], ['#/#portfolio', 'Portfolios'], ['#/#pricing', 'Pricing'], ['#/#safety', 'Safety']]
     : [['#/home', 'Home'], ['#/lessons', 'Lessons'], ['#/calendar', 'Calendar'], [r === 'learner' ? '#/me' : '#/portfolios', r === 'learner' ? 'Portfolio' : 'Portfolios'], ['#/forms', 'Forms'], ['#/messages', 'Messages'],
-      ...(r === 'parent' ? [['#/family', 'Family']] : []), ...(isGuide() ? [['#/learners', 'Learners']] : []), ...(r === 'staff' ? [['#/studio', 'Studio']] : []), ['#/pay', 'Plans']];
+      ...(r === 'parent' ? [['#/family', 'Family']] : []), ...(isGuide() ? [['#/learners', 'Learners']] : []), ...(r === 'staff' ? [['#/studio', 'Studio']] : [])];
   $('#nav').innerHTML = links.map(([h, l]) => `<a href="${h}" class="${location.hash.startsWith(h) && h !== '#/' ? 'on' : ''}">${l}</a>`).join('');
   $('#navcta').innerHTML = S.signer ? `<a href="#/account" class="me">${avatar(S.signer.pubkey, 30)}<span>${esc(S.settings?.name || (r === 'staff' ? 'Kieran' : 'Account'))}</span></a>`
     : `<a class="btn small" href="#/login">Log in</a>`;
@@ -38,7 +37,7 @@ $('#burger').onclick = () => document.body.classList.toggle('navopen');
 
 // ---------- router ----------
 const routes = {
-  '': landing, lessons: lessonsView, lesson: lessonView, u: profileView, demo: demoView, pay: payView, login: loginView,
+  '': landing, lessons: lessonsView, lesson: lessonView, u: profileView, demo: demoView, pay: () => (location.hash = '#/#pricing'), login: loginView,
   home: needLogin(homeView), calendar: needLogin(calendarView), me: needLogin(() => profileView(N.npub(S.signer.pubkey))), portfolios: needLogin(portfoliosView),
   forms: (sub, ...a) => (sub === 'fill' ? formsView(sub, ...a) : needLogin(formsView)(sub, ...a)), // public forms can be filled without logging in
   messages: needLogin(messagesView), family: needLogin(familyView), learners: needLogin(learnersView), studio: needLogin(studioView), account: needLogin(accountView), welcome: needLogin(onboardView),
@@ -67,7 +66,7 @@ async function landing() {
     <div class="wrap hero-grid">
       <div class="reveal">
         <div class="eyebrow">Open learning protocol · Online · Ages 5 to 21</div>
-        <h1>School, rewritten as open source.<br><span class="grad">Now online.</span></h1>
+        <h1>Education, rewritten as open source.<br><span class="grad">Now online.</span></h1>
         <p class="lead">C21 Online brings the Consensus21 week to home educators everywhere. Real projects, guides instead of teachers, a calendar you run yourself, and a git portfolio on Nostr, encrypted so only you, your parents and your guide can read it.</p>
         <div class="row mt"><a class="btn" href="#/login">Start your learning journey</a><a class="btn ghost" href="#/#portfolio">See a portfolio</a></div>
         <div class="stats">
@@ -85,9 +84,9 @@ async function landing() {
 
   <section class="wrap pad" id="why">
     <div class="eyebrow reveal">Why C21 Online</div>
-    <h2 class="reveal">Less like a school. More like a protocol.</h2>
+    <h2 class="reveal">Less like a syllabus. More like a protocol.</h2>
     <div class="grid g3 mt">
-      ${[['🗳️', 'Student voice', 'Learners write School Improvement Proposals (SIPs) and bring them to the council. Your ideas change the rules.'],
+      ${[['🗳️', 'Student voice', 'Learners write System Improvement Proposals (SIPs) and bring them to the council. Your ideas change the rules.'],
          ['🔑', 'You own your keys', 'Your login is a Nostr key pair. Parents make one for each child. Your work is encrypted on public relays, not in a company database.'],
          ['🤝', 'Guides, not teachers', 'Every learner has a guide. Roles are fluid: everyone is a learner and a mentor at different stages.']]
         .map(([i, t, d], k) => `<div class="card lift reveal" style="--delay:${k * 0.1}s"><div class="icon">${i}</div><h3>${t}</h3><p class="muted">${d}</p></div>`).join('')}
@@ -111,7 +110,7 @@ async function landing() {
     <div class="eyebrow reveal">Learning journey</div>
     <h2 class="reveal">It starts with <code>git init</code></h2>
     <div class="grid g2 mt">
-      <div class="steps">${['A parent makes your Nostr key pair and locks it with a password.', 'Your parent picks your guide. That is your circle.', 'Plan your week. The C21 calendar drops into yours.', 'Pick a project and a program. Lessons walk you through it.', 'git init your private portfolio on Nostr.', 'Log each Explorers Day and commit a reflection every Friday.', 'Bring a SIP to Thursday discussion.']
+      <div class="steps">${['A parent makes your Nostr key pair and locks it with a password.', 'Your parent picks your guide. That is your circle.', 'Plan your week. The C21 calendar drops into yours.', 'Go problem hunting. Turn something real into a driving question.', 'git init your private portfolio on Nostr.', 'Log each Explorers Day and commit a reflection every Friday.', 'Bring a SIP to Thursday discussion.']
         .map((s, i) => `<div class="step reveal" style="--delay:${i * 0.06}s"><b>${String(i + 1).padStart(2, '0')}</b><span>${s}</span></div>`).join('')}</div>
       <div class="terminal reveal"><div class="tbar"><i></i><i></i><i></i><span>~/my-c21</span></div><pre id="term"></pre></div>
     </div>
@@ -139,7 +138,9 @@ async function landing() {
 
   <section class="wrap pad" id="lessons">
     <div class="eyebrow reveal">Lessons</div>
-    <h2 class="reveal">Everything Kieran runs in person, now online</h2>
+    <h2 class="reveal">Learn by solving real problems</h2>
+    <p class="lead reveal">No textbook units. Every program starts with a driving question and works through the same project cycle, with short lessons just when you need them.</p>
+    ${cycleStrip()}
     <div class="grid g3 mt">${PROGRAMS.map((p, i) => programCard(p, i)).join('')}</div>
   </section>
 
@@ -152,7 +153,7 @@ async function landing() {
       <div class="node">🧑‍💻 Learners<small>lessons, private calendar (NIP-52), private git portfolio (NIP-34)</small></div><div class="arrow">⇄</div>
       <div class="node">🧭 Guides<small>see their learners' circle, give feedback, add calendar events</small></div>
     </div>
-    <p class="muted mt reveal">No database, no server. The site is static files. Everything else is Nostr. Payments go over Nostr too, with CLINK Lightning offers.</p>
+    <p class="muted mt reveal">No database, no server. The site is static files. Everything else is Nostr.</p>
   </div></section>
 
   <section class="wrap pad" id="safety">
@@ -168,10 +169,10 @@ async function landing() {
       .map(([t, d], i) => `<div class="card reveal" style="--delay:${i * 0.05}s"><h3>✓ ${t}</h3><p class="muted">${d}</p></div>`).join('')}</div>
   </section>
 
-  <section class="band" id="plans"><div class="wrap pad">
-    <div class="eyebrow reveal">Plans</div><h2 class="reveal">Lessons are free. Guiding is paid.</h2>
-    <p class="lead reveal">Every lesson is open to everyone. Plans add a guide, live sessions and the in-person Holiday Studio. Pay in sats over Nostr. 10% of every fee is set aside for the learner's 18th birthday, as the white paper describes.</p>
-    <div class="grid g4 mt">${PLANS.map((p, i) => planCard(p, i)).join('')}</div>
+  <section class="band" id="pricing"><div class="wrap pad narrow center">
+    <div class="eyebrow reveal">Pricing</div><h2 class="reveal">One subscription. The same for everyone.</h2>
+    <p class="lead reveal">No tiers and no upsells. One price covers every program, your calendar, your encrypted portfolio and your guide.</p>
+    <div class="card price-tba mt reveal"><small>Subscription</small><b>Price TBA</b><p class="muted">We're still working out the price. Every lesson stays free to read in the meantime.</p></div>
   </div></section>
 
   <section class="wrap pad narrow" id="register" hidden>
@@ -196,14 +197,14 @@ async function landing() {
 
 function programCard(p, i = 0) {
   return `<a class="card lift program reveal" href="#/lessons/${p.id}" style="--accent:${p.colour};--delay:${(i % 3) * 0.08}s">
-    <div class="pc-icon">${p.icon}</div><h3>${esc(p.title)}</h3><p class="muted">${esc(p.summary)}</p>
+    <div class="pc-icon">${p.icon}</div><h3>${esc(p.title)}</h3><p class="dq-mini">${esc(p.problem)}</p><p class="muted">${esc(p.summary)}</p>
     <div class="pc-meta"><span class="pill">${p.lessons.length} lessons</span><span class="pill">Ages ${esc(p.ages)}</span></div></a>`;
 }
-function planCard(p, i = 0) {
-  return `<div class="card plan ${p.featured ? 'featured' : ''} reveal" style="--delay:${i * 0.07}s">${p.featured ? '<span class="tag">Most popular</span>' : ''}
-    <h3>${esc(p.name)}</h3><div class="price">A$${p.aud}<small>/${p.per}</small></div><p class="muted">${esc(p.blurb)}</p>
-    <ul class="ticks small">${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul><a class="btn ${p.featured ? '' : 'ghost'}" href="#/pay?plan=${p.id}">Pay in sats</a></div>`;
+// The project cycle as a row of phase chips; `on` highlights phases, `counts` shows lessons per phase.
+function cycleStrip(on = [], counts = null) {
+  return `<ol class="cycle reveal" aria-label="The project cycle">${PBL_CYCLE.map((c, i) => `<li class="${on.includes(c.id) ? 'on' : ''}" title="${esc(c.blurb)}"><span class="ci">${c.icon}</span><b>${i + 1}. ${esc(c.label)}</b>${counts ? `<small>${counts[c.id] ? counts[c.id] + (counts[c.id] === 1 ? ' lesson' : ' lessons') : '·'}</small>` : `<small>${esc(c.blurb)}</small>`}</li>`).join('')}</ol>`;
 }
+const phasePill = (id) => { const c = phaseById(id); return c ? `<span class="pill phase ph-${c.id}">${c.icon} ${esc(c.label)}</span>` : ''; };
 
 function renderWeek(el, events, mine = []) {
   if (!el) return;
@@ -231,12 +232,16 @@ function lessonsView(programId) {
       <a href="#/lessons" class="muted small">← All programs</a>
       <div class="phead reveal" style="--accent:${p.colour}"><div class="pc-icon big">${p.icon}</div><div><h1>${esc(p.title)}</h1><p class="lead">${esc(p.summary)}</p>
       <div class="pc-meta"><span class="pill">Ages ${esc(p.ages)}</span>${p.weeks ? `<span class="pill">${p.weeks} weeks</span>` : ''}${p.areas.map((a) => `<span class="pill soft">${esc(a)}</span>`).join('')}</div></div></div>
-      <div class="lesson-list mt">${p.lessons.map((l, i) => `<a class="lrow-l reveal" href="#/lesson/${l.id}" style="--delay:${i * 0.05}s"><span class="num ${done[l.id] ? 'done' : ''}">${done[l.id] ? '✓' : i + 1}</span><span><b>${esc(l.title)}</b><small class="muted">${esc(l.goal)}</small></span><span class="pill">${esc(l.time)}</span></a>`).join('')}</div>
+      <div class="grid g2 mt"><div class="dq reveal" style="--accent:${p.colour}"><small>Driving question</small><b>${esc(p.problem)}</b></div><div class="card reveal"><h3>You'll make</h3><p>${esc(p.make)}</p><p class="muted small">Build it in a project repository in your portfolio and commit as you go.</p></div></div>
+      <h2 class="mt">Where the lessons fit</h2>${cycleStrip([...new Set(p.lessons.map((l) => l.phase))], p.lessons.reduce((a, l) => ({ ...a, [l.phase]: (a[l.phase] || 0) + 1 }), {}))}
+      ${p.id !== 'pbl' && p.id !== 'guide' ? '<p class="muted small">New to project work? <a href="#/lessons/pbl">Start here: build a project from a problem</a> walks through every phase.</p>' : ''}
+      <div class="lesson-list mt">${p.lessons.map((l, i) => `<a class="lrow-l reveal" href="#/lesson/${l.id}" style="--delay:${i * 0.05}s"><span class="num ${done[l.id] ? 'done' : ''}">${done[l.id] ? '✓' : i + 1}</span><span><b>${esc(l.title)}</b><small class="muted">${esc(l.goal)}</small></span><span class="lmeta">${phasePill(l.phase)}<span class="pill">${esc(l.time)}</span></span></a>`).join('')}</div>
     </section>`);
   }
   const doneCount = Object.keys(S.learner?.done || {}).length;
-  view(`<section class="wrap pad"><div class="eyebrow">Lessons</div><h1>Every program Kieran runs, online</h1>
-    <p class="lead">${ALL_LESSONS.length} lessons across ${PROGRAMS.length} programs. Free for everyone. ${S.role === 'learner' ? `You've finished <b>${doneCount}</b>.` : 'Log in as a learner to track progress.'}</p>
+  view(`<section class="wrap pad"><div class="eyebrow">Lessons</div><h1>Learn by solving real problems</h1>
+    <p class="lead">Every program starts with a driving question and follows the same project cycle. ${ALL_LESSONS.length} lessons across ${PROGRAMS.length} programs, free for everyone. New here? Start with <a href="#/lessons/pbl">build a project from a problem</a>. ${S.role === 'learner' ? `You've finished <b>${doneCount}</b>.` : 'Log in as a learner to track progress.'}</p>
+    ${cycleStrip()}
     <div class="grid g3 mt">${PROGRAMS.map(programCard).join('')}</div></section>`);
 }
 
@@ -251,7 +256,8 @@ function lessonView(id) {
   view(`<section class="wrap pad narrow">
     <a href="#/lessons/${p.id}" class="muted small">← ${esc(p.title)}</a>
     <div class="reveal"><span class="pill" style="background:${p.colour};color:#081b2a">${p.icon} Lesson ${idx + 1} of ${p.lessons.length}</span><h1 class="mt">${esc(l.title)}</h1><p class="lead">${esc(l.goal)}</p>
-    <div class="pc-meta"><span class="pill">⏱ ${esc(l.time)}</span></div></div>
+    <div class="pc-meta">${phasePill(l.phase)}<span class="pill">⏱ ${esc(l.time)}</span></div></div>
+    <div class="dq mt reveal" style="--accent:${p.colour}"><small>The problem this lesson helps you solve</small><b>${esc(p.problem)}</b>${phaseById(l.phase) ? `<p class="muted small">${phaseById(l.phase).icon} ${esc(phaseById(l.phase).label)}: ${esc(phaseById(l.phase).blurb)}</p>` : ''}</div>
     <div class="grid g2 mt">
       <div class="card reveal"><h3>You'll need</h3><ul class="ticks">${l.need.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>${l.safety ? `<div class="safe">🛡️ ${esc(l.safety)}</div>` : ''}</div>
       <div class="card reveal"><h3>Commit to your portfolio</h3><p>${esc(l.commit)}</p><p class="muted small">Your notes are committed to <code>lessons/${esc(id)}.md</code> in your private portfolio when you mark the lesson done.</p></div>
@@ -277,46 +283,6 @@ function lessonView(id) {
     }
     toast('Saved and encrypted for your circle ✓');
     if (next) location.hash = '#/lesson/' + next.id; else lessonView(id);
-  };
-}
-
-// ---------- payments ----------
-async function payView() {
-  const sel = Q.get('plan') || 'studio';
-  const kids = S.settings?.children || [];
-  view(`<section class="wrap pad"><div class="eyebrow">Plans</div><h1>Pay in sats, over Nostr</h1>
-    <p class="lead">Lessons are free for everyone. Plans add a guide, live sessions and the in-person Holiday Studio. Payments use a CLINK offer: your wallet gets a Lightning invoice straight from Kieran's node over Nostr.</p>
-    <div class="grid g4 mt">${PLANS.map((p, i) => planCard(p, i)).join('')}</div>
-    <div class="card mt" id="checkout"><h2>Checkout</h2>
-      <div class="grid g3"><div><label>Plan</label><select id="plan">${PLANS.map((p) => `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}: A$${p.aud}/${p.per}</option>`).join('')}</select></div>
-      <div><label>How many (months or days)</label><input id="qty" type="number" min="1" value="1"></div>
-      <div><label>For</label>${kids.length ? `<select id="who">${kids.map((k) => `<option>${esc(k.name)}</option>`).join('')}</select>` : '<input id="who" placeholder="Learner nickname">'}</div></div>
-      <div class="row mt"><button class="btn" id="go">Get invoice</button><span id="quote" class="muted"></span></div>
-      <div id="invoice"></div></div></section>`);
-  const plan = () => PLANS.find((p) => p.id === $('#plan').value);
-  const quote = async () => { try { const sats = await audToSats(plan().aud * Number($('#qty').value || 1)); $('#quote').textContent = `≈ ${sats.toLocaleString()} sats at today's rate`; return sats; } catch { $('#quote').textContent = 'Could not get today\'s bitcoin price.'; return null; } };
-  $('#plan').onchange = quote; $('#qty').oninput = quote; quote();
-  $('#go').onclick = async () => {
-    const sats = await quote(); if (!sats) return;
-    const who = $('#who').value.trim();
-    const desc = `C21 ${plan().name} x${$('#qty').value}${who ? ' for ' + who : ''}`;
-    $('#invoice').innerHTML = '<div class="loader mt"><span></span><span></span><span></span></div><p class="muted center">Asking Kieran\'s offer for an invoice over Nostr…</p>';
-    try {
-      const bolt11 = await requestInvoice(sats, desc, async () => {
-        $('#invoice').innerHTML = `<div class="paid">⚡ Paid. Thank you!</div>`;
-        toast('Payment received ✓');
-        if (S.signer) {
-          try { await N.sendPrivate(S.signer, N.STAFF, `Payment: ${desc}, ${sats} sats.`, [['c21', 'payment']]); } catch {}
-          if (S.role === 'learner') { S.learner.payments = [...(S.learner.payments || []), { desc, sats, at: N.now() }]; saveLearner(); }
-        }
-      });
-      $('#invoice').innerHTML = `<div class="invoice mt"><div class="qr">${qr('lightning:' + bolt11)}</div><div>
-        <p><b>${sats.toLocaleString()} sats</b> · ${esc(desc)}</p><p class="mono small break">${esc(bolt11)}</p>
-        <div class="row"><a class="btn" href="lightning:${bolt11}">Open wallet</a><button class="btn ghost" id="cp">Copy invoice</button>${window.webln ? '<button class="btn ghost" id="wl">Pay with WebLN</button>' : ''}</div>
-        <p class="muted small mt">Waiting for payment… this page updates when your payment lands.</p></div></div>`;
-      $('#cp').onclick = () => navigator.clipboard.writeText(bolt11).then(() => toast('Invoice copied'));
-      if (window.webln) $('#wl').onclick = async () => { try { await window.webln.enable(); await window.webln.sendPayment(bolt11); } catch (e) { toast(e.message, true); } };
-    } catch (e) { $('#invoice').innerHTML = `<p class="bad card mt">${esc(e.message)}</p>`; }
   };
 }
 
@@ -448,7 +414,7 @@ async function calendarView() {
   view(`<section class="wrap pad"><div class="eyebrow">Calendar</div>
     <div class="row between"><h1>${access ? (access.self ? 'Your calendar' : `${esc(access.name || 'Learner')}'s calendar`) : 'The C21 week'}</h1>
       ${accesses.length > 1 ? `<div class="row">${accesses.map((a) => `<a class="chip ${a.pubkey === access?.pubkey ? 'on' : ''}" href="#/calendar?l=${N.npub(a.pubkey)}">${avatar(a.pubkey, 22)} ${esc(a.name || 'Learner')}</a>`).join('')}</div>` : ''}</div>
-    <p class="lead">${access ? `The C21 school week from Kieran (NIP-52), plus 🔒 private events encrypted for ${access.self ? 'you, your parents and your guide' : 'this learner\'s circle'}. Anyone in the circle can add to it.` : S.role === 'parent' ? 'Add a learner on your Family page to give them a private calendar.' : 'No learners in your circle yet.'}</p>
+    <p class="lead">${access ? `The C21 learning week from Kieran (NIP-52), plus 🔒 private events encrypted for ${access.self ? 'you, your parents and your guide' : 'this learner\'s circle'}. Anyone in the circle can add to it.` : S.role === 'parent' ? 'Add a learner on your Family page to give them a private calendar.' : 'No learners in your circle yet.'}</p>
     <div class="cal-bar mt"><div class="row"><a class="btn small ghost" href="${qs({ w: offset - (mode === 'month' ? 4 : 1) })}">←</a><a class="btn small ghost" href="${qs({ w: 0 })}">Today</a><a class="btn small ghost" href="${qs({ w: offset + (mode === 'month' ? 4 : 1) })}">→</a>
       <b class="cal-title">${mode === 'month' ? monthStart.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : 'Week of ' + monday.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</b></div>
       <div class="row"><a class="chip ${mode === 'week' ? 'on' : ''}" href="${qs({ v: 'week' })}">Week</a><a class="chip ${mode === 'month' ? 'on' : ''}" href="${qs({ v: 'month' })}">Month</a><button class="btn small ghost" id="ics">Export .ics</button>${access ? '<button class="btn small" id="addev">+ Event</button>' : ''}</div></div>
