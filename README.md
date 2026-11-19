@@ -66,7 +66,7 @@ Open learn.consensus21.school, log in with your Kieran npub, go to **Studio** an
 
 That copy needs no GitHub at all. Do this again after each update.
 
-The built `assets/app.js` is committed, so GitHub serves the site as is. The page is `lms.html`; rename it to `index.html` if you want it at the root URL. If you edit anything in `src/`, run `npm run build`, or switch Pages to **GitHub Actions** to use the included workflow, which rebuilds on every push.
+The built `assets/app.js` is committed, so GitHub serves the site as is. The page is `index.html`, so it loads at the root URL. If you edit anything in `src/`, run `npm run build`, or switch Pages to **GitHub Actions** to use the included workflow, which rebuilds on every push.
 
 ## Change things
 
