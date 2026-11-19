@@ -386,6 +386,6 @@ export async function publishWeek(monday, blocks) {
       ['start_tzid', SITE.timezone], ['end_tzid', SITE.timezone], ['location', 'C21 Online'], ['t', 'c21'], ['t', b.type || 'core']] });
     events.push(`31923:${ev.pubkey}:${dTag}`);
   }
-  await N.publish(S.signer, { kind: 31924, content: 'The Consensus21 week: Explorers Monday, core programs, project studio and SIP discussion.', tags: [['d', 'c21'], ['title', 'Consensus21 week'], ...events.map((a) => ['a', a])] });
+  await N.publish(S.signer, { kind: 31924, content: 'The Consensus21 week: time management on Monday, core programs, project studio and SIP discussion.', tags: [['d', 'c21'], ['title', 'Consensus21 week'], ...events.map((a) => ['a', a])] });
   calCache = null;
 }

@@ -36,7 +36,7 @@ The public C21 week and the weekly videos are deliberately public: they're the s
 ## Safety by design
 
 - **Parents create every learner key.** The key is generated in the parent's browser and locked with a password the parent chooses. The parent keeps an encrypted backup.
-- **Nothing public about a child.** Learners never publish a profile (kind 0). No names, photos or follower counts. They get a generated nickname and cube avatar.
+- **Nothing public about a child.** Learners never publish a profile (kind 0). No names, photos or follower counts. They get a generated nickname and a blocky pixel-art character.
 - **A circle of three.** Only the learner, their parents and their guide can read their work or message them. There's no public feed and no DMs from strangers.
 - **No secret keys in portfolios.** Commits are checked for nsec/ncryptsec keys and seed phrases.
 

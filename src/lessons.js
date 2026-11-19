@@ -12,7 +12,7 @@ export const PROGRAMS = [
     lessons: [
       { id: 'core-week', title: 'Run your own week', time: '45 min', goal: 'Plan your C21 week in a calendar you control.',
         need: ['C21 Online calendar', 'A parent for 10 minutes'],
-        steps: ['Open Calendar and look at the C21 week: Explorers Monday, then core programs Tuesday to Friday.', 'Add three blocks of your own: project time, movement, and one thing you love.', 'Pick one goal for the week. Write it as "By Friday I will…".', 'Show your parent your week. Agree on one change together.', 'On Friday, check: did you hit your goal? What got in the way?'],
+        steps: ['Open Calendar and look at the C21 week: time management on Monday, then core programs Tuesday to Friday.', 'Add three blocks of your own: project time, movement, and one thing you love.', 'Pick one goal for the week. Write it as "By Friday I will…".', 'Show your parent your week. Agree on one change together.', 'On Friday, check: did you hit your goal? What got in the way?'],
         commit: 'Your goal for the week, and a one line check-in on Friday.' },
       { id: 'core-audit', title: 'Time audit', time: '30 min a day for 3 days', goal: 'Find out where your time really goes, and change one habit.',
         need: ['Paper or a notes app'],
@@ -231,7 +231,7 @@ export const programById = (id) => PROGRAMS.find((p) => p.id === id);
 
 // The default C21 week (used until Kieran publishes a calendar on Nostr).
 export const DEFAULT_WEEK = [
-  { day: 1, start: '09:00', end: '15:00', title: 'Explorers Day Out', type: 'explore' },
+  { day: 1, start: '09:00', end: '15:00', title: 'Core: Time management', type: 'core' },
   { day: 2, start: '09:30', end: '10:30', title: 'Core: Time management', type: 'core' },
   { day: 2, start: '10:45', end: '12:30', title: 'Project studio', type: 'pbl' },
   { day: 3, start: '09:30', end: '10:30', title: 'Core: Money and Bitcoin', type: 'core' },
