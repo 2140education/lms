@@ -1,0 +1,20 @@
+{
+  "name": "c21-online",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=esm --minify --target=es2022 --outfile=assets/app.js",
+    "watch": "esbuild src/main.js --bundle --format=esm --outfile=assets/app.js --watch --servedir=."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@shocknet/clink-sdk": "^1.7.4",
+    "esbuild": "^0.28.2",
+    "nostr-tools": "^2.26.1",
+    "qrcode-generator": "^2.0.4"
+  },
+  "private": true,
+  "type": "module"
+}
