@@ -40,27 +40,24 @@ The public C21 week and the weekly videos are deliberately public: they're the s
 - **A circle of three.** Only the learner, their parents and their guide can read their work or message them. There's no public feed and no DMs from strangers.
 - **No secret keys in portfolios.** Commits are checked for nsec/ncryptsec keys and seed phrases.
 
-## Go live at learn.consensus21.school
+## Go live at lms.2140education.org
 
-You don't need a command line for any of this.
+The site is served by GitHub Pages from [2140education/lms](https://github.com/2140education/lms). The `CNAME` file in the repo already holds the domain.
 
-**1. Put the files on GitHub (about 5 minutes)**
-1. On github.com, create a new **public** repository called `c21-online`.
-2. On the empty repo page, click **uploading an existing file**. Drag everything from inside the unzipped `c21-pages` folder onto the page, then click **Commit changes**.
-3. Go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, branch `main`, folder `/ (root)`, and save.
-4. In the same place, type `learn.consensus21.school` under **Custom domain**, then save.
+**1. Turn on Pages**
+In the repo, go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, branch `main`, folder `/ (root)`, and save. Check that **Custom domain** shows `lms.2140education.org`.
 
-**2. Point the subdomain at GitHub (wherever consensus21.school's DNS is managed)**
+**2. Point the subdomain at GitHub (wherever 2140education.org's DNS is managed)**
 Add a DNS record:
 
 | Type | Name | Value |
 |---|---|---|
-| CNAME | `learn` | `<your-github-username>.github.io` |
+| CNAME | `lms` | `2140education.github.io` |
 
 Once GitHub shows the domain as verified (usually under an hour), tick **Enforce HTTPS**.
 
 **3. Mirror it onto Nostr (nsite)**
-Open learn.consensus21.school, log in with your Kieran npub, go to **Studio** and click **Publish site update**. The site's files are copied to Blossom servers and a signed site record (NIP-5A, kind 35128) goes to the relays. The site is then also live at:
+Open lms.2140education.org, log in with your Kieran npub, go to **Studio** and click **Publish site update**. The site's files are copied to Blossom servers and a signed site record (NIP-5A, kind 35128) goes to the relays. The site is then also live at:
 
 `https://4te82lud6sdrp2an3hl17ex3fkacowjg0rtudne4q384iy2voqc21.nsite.lol`
 
