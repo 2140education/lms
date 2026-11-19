@@ -30,10 +30,10 @@ export const PROGRAMS = [
         need: ['An idea that would make C21 better'],
         steps: ['Write the problem in one sentence.', 'Write your idea in one sentence.', 'Who does it affect? Who might disagree, and why?', 'How would we know it worked?', 'Bring it to Thursday SIP discussion, or send it to Kieran in Messages.'],
         commit: 'Your SIP as a markdown file in sips/.' },
-      { id: 'core-git', title: 'git init your portfolio', time: '60 min', goal: 'Create your portfolio repository on Nostr.',
+      { id: 'core-git', title: 'git init your portfolio', time: '60 min', goal: 'Create your private portfolio repository on Nostr.',
         need: ['Your C21 login'],
-        steps: ['Go to Portfolio and press "New repository". Call it my-c21.', 'Your repository is announced on Nostr, so it belongs to your key, not a company.', 'Add a description of who you are as a learner (no real name, school or address).', 'Each Friday, add a devlog entry: what you built, what you learned, what is next.', 'Your profile page is your report card. Share the link with your family.'],
-        commit: 'Your first devlog entry.' },
+        steps: ['Go to Portfolio and press "Edit README". Write who you are as a learner and what you want to build. That is your first commit.', 'Every commit is signed by your key and encrypted for your circle: you, your parents and your guide. Nobody else, not even the relays, can read it.', 'Look at the Commits tab of your c21 repository. Each commit points to the one before it, like a chain. That is what git does.', 'Press "+ New project" to start a repository for your project, and add a file to it.', 'Each Friday, press "+ Reflection": what you built, what you learned, what is next. Your profile page is your report card.'],
+        commit: 'Your README and your first reflection.' },
     ],
   },
   {

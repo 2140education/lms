@@ -1,74 +1,83 @@
 # C21 Online
 
-Consensus21, online. A static site for GitHub Pages where **everything else lives on Nostr**: logins, learner progress, the C21 calendar, weekly videos, portfolios, family messages and payments. There's no server and no database.
+Consensus21, online, following the [Consensus21 white paper](https://consensus21.school/). A static site where **everything else lives on Nostr**: logins, learner progress, calendars, weekly videos, git portfolios, family messages and payments. There's no server and no database, and everything personal is encrypted before it leaves the browser.
 
 ## What's in it
 
 | | |
 |---|---|
-| **Landing page** | Styled like consensus21.school: a spinning 3D cube, animated counters, reveal-on-scroll, a typing terminal and a contribution graph. Shows Kieran's live C21 week and latest video from Nostr. |
-| **Lessons** | 37 lessons across 10 programs, all of them things Kieran runs in person: C21 Core (time, money, SIPs, git portfolio), Minecraft Red vs Blue (6 weeks), MakeCode Arcade, VR galleries with A-Frame, how the internet works and Starlink, cyber safety for families, microcontrollers, a Bitcoin and Lightning micro business, websites, and Explorers Day Out. Lessons are free and open to everyone. |
-| **Login** | Nostr only: a browser extension (NIP-07), a remote signer like Amber or nsec.app (NIP-46), or a key on this device encrypted with a password (NIP-49). |
-| **Parents** | Create learner logins, see each learner's progress, notes, project, calendar and draft repos, download a learning record CSV (mapped to the 8 VRQA learning areas), and switch public portfolios on or off. |
-| **Calendar** | Kieran publishes the C21 week as NIP-52 calendar events. Everyone sees it in their own time zone and can export it as .ics. Learners add their own blocks, which are encrypted. |
-| **Portfolio** | A GitHub-style profile at `#/u/<npub>`: repositories (NIP-34 announcements, the standard Nostr git tools use), a 12-month contribution graph and Friday devlogs. |
-| **Weekly video** | Kieran uploads to a Blossom server, or pastes a link, and publishes a NIP-71 video event to every relay. |
-| **Messages** | Encrypted family rooms (NIP-17). A learner's room always includes their parent and Kieran, and learners can't message anyone else. |
-| **Payments** | Every plan is paid in sats through Kieran's CLINK offer (`noffer1…`). The learner's wallet gets a Lightning invoice over Nostr, and the page updates when the receipt arrives. |
-| **Studio** (Kieran) | Post the weekly video, publish the C21 week, and see every learner who shares progress with a mentor. |
+| **Landing page** | Styled like consensus21.school: a spinning 3D cube, animated counters, a typing terminal, and the same "Your profile is your report card" learner roster, linking to example learners. |
+| **Login** | Nostr key pairs only: a browser extension (NIP-07), a remote signer like Amber or nsec.app (NIP-46), or a key on this device encrypted with a password (NIP-49). |
+| **Family keys** | A parent creates a key pair for each child in their own browser (or links a key the child already has), locked with a password the parent chooses. The Family page lists every key in the family. |
+| **Circles** | Each learner has a circle: the learner, their parents (co-parents can be added by npub) and their guide. Only the circle can read the learner's portfolio, calendar, progress and messages. |
+| **Guides** | Anyone can sign up as a guide. A parent picks Kieran or pastes another guide's npub. Guides see their learners, read portfolios, give feedback and add 1:1s to calendars. |
+| **Lessons** | 37 lessons across 10 programs Kieran runs in person. Marking a lesson done can commit your notes to your portfolio. |
+| **Calendar** | Week and month views. The public C21 week (NIP-52, from Kieran) plus the learner's own weekly blocks and private events. Anyone in the circle can add an event. Exports to .ics. |
+| **Portfolio** | Laid out like a consensus21.school profile (Overview, Projects, My week, Journal, SIPs) at `#/u/<npub>`. Backed by private git on Nostr: repositories, commits, files, a contribution graph, Explorers Days, Friday reflections and SIPs, plus feedback from parents and guide. |
+| **Forms** | Built on [Formstr](https://about.formstr.app/) (NIP-101). Parents, guides and Kieran build forms from C21 templates (Friday check-in, Explorers Day debrief, SIP feedback, lesson check, parent survey), send them to learners' circles and read the answers, which are encrypted to the form's key. Learners can save a copy of their answers to their portfolio. Every form also opens in formstr.app, and Formstr forms can be imported. Kieran can put a public "Register interest" form on the home page. |
+| **Weekly video** | Kieran uploads to a Blossom server, or pastes a link, and publishes a NIP-71 video event. |
+| **Messages** | Encrypted circle rooms (NIP-17). Learners can only message their own circle. |
+| **Payments** | Plans are paid in sats through Kieran's CLINK offer (`noffer1…`). |
+| **Studio** (Kieran) | Post the weekly video, publish the C21 week and mirror the site to Nostr (nsite). |
+
+## How encryption works
+
+- **Private git portfolio.** Repositories (kind 30617), commits (kind 1617) and feedback (kind 1111) use the NIP-34 kinds, but every one is a NIP-59 *gift wrap*: a rumor sealed and signed by its author, then wrapped by a throwaway key, once for each person in the circle. Relays see only ciphertext, a random timestamp and the recipient. They can't tell who wrote it, what kind it is, or that it's a portfolio at all.
+- **Verifiable history.** Each commit id is a SHA-256 of its parent, message, changes and time, so the history is a chain like git. The viewer's browser re-checks every id, and the seal signature proves the learner wrote it.
+- **Encrypted attachments.** Photos and other files are AES-256-GCM encrypted in the browser, then uploaded to Blossom. The key lives only inside the encrypted commit.
+- **Private calendar.** Events are NIP-52 kind 31923 inside gift wraps. Removing an event publishes a cancelled version.
+- **Progress and settings.** NIP-44 encrypted kind 30078, with a separate copy for each circle member. The tag that names a copy is a hash, so relays can't see family links.
+- **Changing the circle.** When a parent adds a co-parent or a new guide, the app re-seals the learner's history (and the parent's own events) for the new person, so they see everything from the start. Removing someone stops future sharing, but can't take back what they already read.
+
+- **Forms.** Each Formstr form has its own key. Learner forms are private: the questions are encrypted to a view key that only travels inside encrypted messages to the circle, and the name tag is left blank. Answers are encrypted to the form's key, so only its owner can read them. A response does show publicly that a given pubkey answered a given form address; learners have no public profile, so that pubkey isn't linked to a name.
+
+The public C21 week and the weekly videos are deliberately public: they're the school timetable and announcements, not anyone's personal data.
 
 ## Safety by design
 
-- **Parents create every learner login.** The learner's key is generated in the parent's browser and locked with a password the parent chooses. The parent keeps an encrypted backup.
-- **Learner data is encrypted** (NIP-44, kind 30078) for the learner, their parent and, only if the parent allows it, the mentor. The tag that identifies who a copy is shared with is a hash, so relays can't see family links.
-- **There is no public feed, no follows, no zaps and no DMs from strangers.** The site only shows content from Kieran, the logged-in learner and their family.
-- **Learners are pseudonymous by default.** They get a generated nickname and a cube avatar, and can't upload photos.
-- **Public text is checked** for emails, phone numbers, street addresses, school names, secret keys and swearing before anything is published.
-- **Public portfolios are off until a parent switches them on.** Until then, repositories are saved as private drafts the parent can see.
+- **Parents create every learner key.** The key is generated in the parent's browser and locked with a password the parent chooses. The parent keeps an encrypted backup.
+- **Nothing public about a child.** Learners never publish a profile (kind 0). No names, photos or follower counts. They get a generated nickname and cube avatar.
+- **A circle of three.** Only the learner, their parents and their guide can read their work or message them. There's no public feed and no DMs from strangers.
+- **No secret keys in portfolios.** Commits are checked for nsec/ncryptsec keys and seed phrases.
 
-Learner portfolios that a parent makes public are public on Nostr permanently. Tell parents this when they switch it on.
+## Go live at lms.2140education.org
 
-## Go live at learn.consensus21.school
+The site is served by GitHub Pages from [2140education/lms](https://github.com/2140education/lms). The `CNAME` file in the repo already holds the domain.
 
-You don't need a command line for any of this.
+**1. Turn on Pages**
+In the repo, go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, branch `main`, folder `/ (root)`, and save. Check that **Custom domain** shows `lms.2140education.org`.
 
-**1. Put the files on GitHub (about 5 minutes)**
-1. On github.com, create a new **public** repository called `c21-online`.
-2. On the empty repo page, click **uploading an existing file**. Drag everything from inside the unzipped `c21-pages` folder onto the page, then click **Commit changes**.
-3. Go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, branch `main`, folder `/ (root)`, and save.
-4. In the same place, type `learn.consensus21.school` under **Custom domain**, then save.
-
-**2. Point the subdomain at GitHub (wherever consensus21.school's DNS is managed)**
+**2. Point the subdomain at GitHub (wherever 2140education.org's DNS is managed)**
 Add a DNS record:
 
 | Type | Name | Value |
 |---|---|---|
-| CNAME | `learn` | `<your-github-username>.github.io` |
+| CNAME | `lms` | `2140education.github.io` |
 
 Once GitHub shows the domain as verified (usually under an hour), tick **Enforce HTTPS**.
 
 **3. Mirror it onto Nostr (nsite)**
-Open learn.consensus21.school, log in with your Kieran npub, go to **Studio** and click **Publish site update**. The site's files are copied to Blossom servers and a signed site record (NIP-5A, kind 35128) goes to the relays. The site is then also live at:
+Open lms.2140education.org, log in with your Kieran npub, go to **Studio** and click **Publish site update**. The site's files are copied to Blossom servers and a signed site record (NIP-5A, kind 35128) goes to the relays. The site is then also live at:
 
 `https://4te82lud6sdrp2an3hl17ex3fkacowjg0rtudne4q384iy2voqc21.nsite.lol`
 
 That copy needs no GitHub at all. Do this again after each update.
 
-The built `assets/app.js` is committed, so GitHub serves the site as is. If you edit anything in `src/`, run `npm run build`, or switch Pages to **GitHub Actions** to use the included workflow, which rebuilds on every push.
+The built `assets/app.js` is committed, so GitHub serves the site as is. The page is `index.html`, so it loads at the root URL. If you edit anything in `src/`, run `npm run build`, or switch Pages to **GitHub Actions** to use the included workflow, which rebuilds on every push.
 
 ## Change things
 
 Edit `src/config.js`, then run `npm install && npm run build`:
 
-- `STAFF_NPUBS`: mentors who can post videos and the calendar. Kieran's npub is already in.
-- `RELAYS`: relays used for everything (damus, nos.lol, primal, nostr.mom by default).
+- `STAFF_NPUBS`: mentors who can post videos and the calendar. Kieran's npub is already in, and he is the default guide.
+- `RELAYS`: the public relays everything is published to (ten widely used free relays by default).
 - `BLOSSOM_SERVERS`: where weekly videos are uploaded.
 - `NOFFER` and `PLANS`: the payment offer and prices in AUD. Prices are converted to sats at the live rate from mempool.space.
-- `NOSTRGIT_PROFILE_URL` and `NOSTRGIT_REPO_URL`: where the "View on NostrGit" links go. Set these to NostrGit's real profile and repo URL format, using `{npub}` and `{naddr}`.
+- `MAX_TEXT_COMMIT`: the largest text commit (gift wraps cap a single event at about 64 KB). Bigger files go to Blossom as encrypted uploads.
 
 Lessons live in `src/lessons.js`. The default week (used until Kieran publishes one) is at the bottom of that file.
 
-For local development, `npm run watch` serves the site at http://localhost:8000.
+For local development, `npm run watch` serves the site at http://localhost:8000. To test without touching public relays, set `globalThis.C21_TEST_RELAYS = ['ws://127.0.0.1:7777']` in a script tag before `assets/app.js` and run any local relay.
 
 ## How the data fits together
 
@@ -76,16 +85,19 @@ For local development, `npm run watch` serves the site at http://localhost:8000.
 |---|---|
 | Login keys | NIP-07, NIP-46, NIP-49 |
 | Settings, learner progress, shares | kind 30078, NIP-44 encrypted |
-| Family messages, enrolment and payment notices | NIP-17 (kinds 14, 13, 1059) |
-| C21 calendar | NIP-52 (kinds 31923 and 31924) |
-| Weekly videos | NIP-71 (kind 21) with Blossom uploads |
-| Portfolio repositories | NIP-34 (kind 30617) |
-| Devlogs | NIP-22 comments (kind 1111) on the repository |
+| Portfolio repos, commits, feedback | NIP-34 kinds 30617, 1617, 1111, inside NIP-59 gift wraps |
+| Private calendar events | NIP-52 kind 31923, inside NIP-59 gift wraps |
+| Portfolio attachments | AES-GCM encrypted blobs on Blossom |
+| Circle messages, enrolment, co-parent links, form assignments | NIP-17 (kinds 14, 13, 1059) |
+| Forms | Formstr / NIP-101: template kind 30168 (signed by a per-form key, spec NIP-44 encrypted to a view key), responses kind 1069 (NIP-44 encrypted to the form key), the owner's form list kind 14083, access grants kind 18 in gift wraps to alias keys |
+| Home page interest form pointer | kind 30078 `c21/interest-form`, public |
+| C21 school week | NIP-52 (kinds 31923 and 31924), public |
+| Weekly videos | NIP-71 (kind 21) with Blossom uploads, public |
 | Payments | CLINK offers (kind 21001) over Nostr |
 
 ## Not in this version
 
 - **AI Kieran.** Planned for version 2.
 - **Paywalls.** Lessons are free. Plans are paid, but the site doesn't lock features behind a payment. Kieran gets an encrypted payment notice and handles mentoring by hand.
-- **Pushing code from the browser.** Learners announce repositories here and push code using NostrGit or ngit, then paste the clone URL.
-- **NostrGit compatibility.** Repositories use NIP-34, the shared standard. Check that they show up on nostrgit.xyz, and set the link templates.
+- **Pushing with git or ngit.** Portfolios are edited in the browser. Standard git tools can't read gift-wrapped repositories yet, so there's no `git push` to a private portfolio.
+- **Multisig council, SIP voting and the 18th-birthday timelock** from the white paper. Fees are paid in sats today; the 3-of-6 council wallet and timelock aren't automated.
