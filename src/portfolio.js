@@ -1,4 +1,4 @@
-// Learner portfolios, laid out like a Consensus21.school profile, built from a private git history
+// Learner portfolios, laid out like a Consensus21 profile, built from a private git history
 // on Nostr. Repos and commits are NIP-34 kinds sealed in NIP-59 gift wraps, so only the learner,
 // their parents and their guide can ever read them.
 import * as N from './nostr.js';
@@ -152,7 +152,7 @@ export function renderProfile(m, tab = 'overview', { switcher = null } = {}) {
         <div class="pf-block"><h3 class="pf-h3">Reflections <small>reflections/</small></h3>${m.reflections.length ? `<div class="pf-list">${m.reflections.map((d) => docRow(d)).join('')}</div>` : empty('No reflections yet. Friday is reflection day.')}</div>
       </section>
       <section class="pf-panel" id="p-sips" ${tab === 'sips' ? '' : 'hidden'}>
-        <div class="pf-block"><h3 class="pf-h3">School Improvement Proposals <small>sips/</small></h3>${m.sips.length ? `<div class="pf-list">${m.sips.map((d) => docRow(d, 'sip')).join('')}</div>` : empty('No SIPs yet. Got an idea that would make C21 better? Write it up and bring it to Thursday SIP discussion.')}</div>
+        <div class="pf-block"><h3 class="pf-h3">System Improvement Proposals <small>sips/</small></h3>${m.sips.length ? `<div class="pf-list">${m.sips.map((d) => docRow(d, 'sip')).join('')}</div>` : empty('No SIPs yet. Got an idea that would make C21 better? Write it up and bring it to Thursday SIP discussion.')}</div>
       </section>
     </main>
   </div></div>`);

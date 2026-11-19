@@ -1,23 +1,23 @@
 # C21 Online
 
-Consensus21, online, following the [Consensus21 white paper](https://consensus21.school/). A static site where **everything else lives on Nostr**: logins, learner progress, calendars, weekly videos, git portfolios, family messages and payments. There's no server and no database, and everything personal is encrypted before it leaves the browser.
+Consensus21, online, following the [Consensus21 white paper](https://consensus21.school/). A static site where **everything else lives on Nostr**: logins, learner progress, calendars, weekly videos, git portfolios, and family messages. There's no server and no database, and everything personal is encrypted before it leaves the browser.
 
 ## What's in it
 
 | | |
 |---|---|
-| **Landing page** | Styled like consensus21.school: a spinning 3D cube, animated counters, a typing terminal, and the same "Your profile is your report card" learner roster, linking to example learners. |
+| **Landing page** | Styled like the Consensus21 site: a spinning 3D cube, animated counters, a typing terminal, and the same "Your profile is your report card" learner roster, linking to example learners. |
 | **Login** | Nostr key pairs only: a browser extension (NIP-07), a remote signer like Amber or nsec.app (NIP-46), or a key on this device encrypted with a password (NIP-49). |
 | **Family keys** | A parent creates a key pair for each child in their own browser (or links a key the child already has), locked with a password the parent chooses. The Family page lists every key in the family. |
 | **Circles** | Each learner has a circle: the learner, their parents (co-parents can be added by npub) and their guide. Only the circle can read the learner's portfolio, calendar, progress and messages. |
 | **Guides** | Anyone can sign up as a guide. A parent picks Kieran or pastes another guide's npub. Guides see their learners, read portfolios, give feedback and add 1:1s to calendars. |
-| **Lessons** | 37 lessons across 10 programs Kieran runs in person. Marking a lesson done can commit your notes to your portfolio. |
+| **Lessons** | Problem-based learning: 49 lessons across 12 programs. Every program starts with a driving question and follows the same project cycle (meet the problem, investigate, plan, build, test, share, reflect). "Start here" teaches the cycle itself, and a guides-and-parents program shows how to design a unit around a real problem and assess it through the portfolio. Marking a lesson done can commit your notes to your portfolio. |
 | **Calendar** | Week and month views. The public C21 week (NIP-52, from Kieran) plus the learner's own weekly blocks and private events. Anyone in the circle can add an event. Exports to .ics. |
-| **Portfolio** | Laid out like a consensus21.school profile (Overview, Projects, My week, Journal, SIPs) at `#/u/<npub>`. Backed by private git on Nostr: repositories, commits, files, a contribution graph, Explorers Days, Friday reflections and SIPs, plus feedback from parents and guide. |
+| **Portfolio** | Laid out like a Consensus21 profile (Overview, Projects, My week, Journal, SIPs) at `#/u/<npub>`. Backed by private git on Nostr: repositories, commits, files, a contribution graph, Explorers Days, Friday reflections and SIPs, plus feedback from parents and guide. |
 | **Forms** | Built on [Formstr](https://about.formstr.app/) (NIP-101). Parents, guides and Kieran build forms from C21 templates (Friday check-in, Explorers Day debrief, SIP feedback, lesson check, parent survey), send them to learners' circles and read the answers, which are encrypted to the form's key. Learners can save a copy of their answers to their portfolio. Every form also opens in formstr.app, and Formstr forms can be imported. Kieran can put a public "Register interest" form on the home page. |
 | **Weekly video** | Kieran uploads to a Blossom server, or pastes a link, and publishes a NIP-71 video event. |
 | **Messages** | Encrypted circle rooms (NIP-17). Learners can only message their own circle. |
-| **Payments** | Plans are paid in sats through Kieran's CLINK offer (`noffer1…`). |
+| **Pricing** | One subscription, the same for everyone. The price is TBA, so there's no checkout yet. |
 | **Studio** (Kieran) | Post the weekly video, publish the C21 week and mirror the site to Nostr (nsite). |
 
 ## How encryption works
@@ -31,7 +31,7 @@ Consensus21, online, following the [Consensus21 white paper](https://consensus21
 
 - **Forms.** Each Formstr form has its own key. Learner forms are private: the questions are encrypted to a view key that only travels inside encrypted messages to the circle, and the name tag is left blank. Answers are encrypted to the form's key, so only its owner can read them. A response does show publicly that a given pubkey answered a given form address; learners have no public profile, so that pubkey isn't linked to a name.
 
-The public C21 week and the weekly videos are deliberately public: they're the school timetable and announcements, not anyone's personal data.
+The public C21 week and the weekly videos are deliberately public: they're the shared timetable and announcements, not anyone's personal data.
 
 ## Safety by design
 
@@ -72,10 +72,10 @@ Edit `src/config.js`, then run `npm install && npm run build`:
 - `STAFF_NPUBS`: mentors who can post videos and the calendar. Kieran's npub is already in, and he is the default guide.
 - `RELAYS`: the public relays everything is published to (ten widely used free relays by default).
 - `BLOSSOM_SERVERS`: where weekly videos are uploaded.
-- `NOFFER` and `PLANS`: the payment offer and prices in AUD. Prices are converted to sats at the live rate from mempool.space.
+- `NOFFER`: the CLINK payment offer, kept for when subscriptions open (not used yet; helpers in `src/pay.js`).
 - `MAX_TEXT_COMMIT`: the largest text commit (gift wraps cap a single event at about 64 KB). Bigger files go to Blossom as encrypted uploads.
 
-Lessons live in `src/lessons.js`. The default week (used until Kieran publishes one) is at the bottom of that file.
+Lessons live in `src/lessons.js`. Each program has a `problem` (its driving question) and each lesson a `phase` from `PBL_CYCLE`. The default week (used until Kieran publishes one) is at the bottom of that file.
 
 For local development, `npm run watch` serves the site at http://localhost:8000. To test without touching public relays, set `globalThis.C21_TEST_RELAYS = ['ws://127.0.0.1:7777']` in a script tag before `assets/app.js` and run any local relay.
 
@@ -91,13 +91,12 @@ For local development, `npm run watch` serves the site at http://localhost:8000.
 | Circle messages, enrolment, co-parent links, form assignments | NIP-17 (kinds 14, 13, 1059) |
 | Forms | Formstr / NIP-101: template kind 30168 (signed by a per-form key, spec NIP-44 encrypted to a view key), responses kind 1069 (NIP-44 encrypted to the form key), the owner's form list kind 14083, access grants kind 18 in gift wraps to alias keys |
 | Home page interest form pointer | kind 30078 `c21/interest-form`, public |
-| C21 school week | NIP-52 (kinds 31923 and 31924), public |
+| C21 learning week | NIP-52 (kinds 31923 and 31924), public |
 | Weekly videos | NIP-71 (kind 21) with Blossom uploads, public |
-| Payments | CLINK offers (kind 21001) over Nostr |
 
 ## Not in this version
 
 - **AI Kieran.** Planned for version 2.
-- **Paywalls.** Lessons are free. Plans are paid, but the site doesn't lock features behind a payment. Kieran gets an encrypted payment notice and handles mentoring by hand.
+- **Payments.** There's one subscription for everyone, but the price is TBA, so there's no checkout. Nothing is locked behind a payment.
 - **Pushing with git or ngit.** Portfolios are edited in the browser. Standard git tools can't read gift-wrapped repositories yet, so there's no `git push` to a private portfolio.
-- **Multisig council, SIP voting and the 18th-birthday timelock** from the white paper. Fees are paid in sats today; the 3-of-6 council wallet and timelock aren't automated.
+- **Multisig council, SIP voting and the 18th-birthday timelock** from the white paper. The 3-of-6 council wallet and timelock aren't automated.

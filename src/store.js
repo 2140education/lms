@@ -342,7 +342,7 @@ export function videoInfo(ev) {
   return { title: tag('title') || 'Weekly update', url: fields.url || tag('r') || tag('url'), mime: fields.m, notes: ev.content, at: Number(tag('published_at')) || ev.created_at };
 }
 
-// The C21 school week (NIP-52), published by Kieran. This is the public timetable, not personal data.
+// The C21 learning week (NIP-52), published by Kieran. This is the public timetable, not personal data.
 let calCache;
 export function c21Calendar() {
   calCache ||= (async () => {
@@ -368,7 +368,7 @@ export function defaultWeekEvents(monday) {
   });
 }
 
-// The school week repeats: show it for any week by shifting the published week.
+// The C21 week repeats: show it for any week by shifting the published week.
 export function schoolWeek(events, monday) {
   const ref = mondayOf(new Date(events[0]?.start * 1000 || Date.now()));
   const shift = Math.round((monday - ref) / (7 * 86400000)) * 7 * 86400;
